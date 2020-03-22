@@ -12,11 +12,12 @@
            syntax/parse/define))
 
 (define (->srcloc source pos)
-  (match-define (position offset line column) pos)
-  (vector (if (input-port? source)
-              (object-name source)
-              source)
-          line column offset 0))
+  (and pos
+       (match-let ([(position offset line column) pos])
+         (vector (if (input-port? source)
+                     (object-name source)
+                     source)
+                 line column offset 0))))
 
 (define ((make-raise-read-error	raise-proc) message start-loc end-loc)
   (let ([srcloc (build-source-location-vector start-loc end-loc)])
@@ -36,12 +37,17 @@
 (define ALPHA (char->integer #\a))
 (define ZED   (char->integer #\z))
 
-(define (parse-nrm-number s)
+(define (parse-nrm-number input-port start-pos end-pos s)
   (define-values (base igits)
     (match s
       [(pregexp #px"^(\\d\\d?)r(.*)" (list _ base igits))
        (values (string->number base) igits)]
       [igits (values 10 igits)]))
+  (when (or (< base 2) (> base 36))
+    (raise-read-error
+      (format "base (~a) out of range [2,36]" base)
+      (->srcloc input-port start-pos)
+      (->srcloc input-port end-pos)))
   (define (char->value c)
     (define v
       (let ([cp (char->integer (char-downcase c))])
@@ -51,32 +57,57 @@
     (cond
       [(< v base) v]
       [else
-        (error 'parse-nrm-number "out of range: ~s" c)]))
-  (for/fold ([v 0]) ([c (in-string igits)]
-                     #:unless (char=? c #\_))
+        (raise-read-error
+          (format "value (~a) out of range for base (~a)" c base)
+          (->srcloc input-port start-pos)
+          (->srcloc input-port end-pos))]))
+  (for/fold ([v 0] #:result (make-token input-port start-pos end-pos token v))
+            ([c (in-string igits)]
+             #:unless (char=? c #\_))
     (+ (char->value c) (* base v))))
 
 (module+ test
-  (test-equal? "base 2" (parse-nrm-number "2r10") 2)
-  (test-equal? "base 6" (parse-nrm-number "6r10") 6)
+  (test-equal? "base 2"
+               (token-value (parse-nrm-number #f #f #f "2r10")) 2)
+  (test-equal? "base 6"
+               (token-value (parse-nrm-number #f #f #f "6r10")) 6)
   (test-equal? "explicit base 10"
-               (parse-nrm-number "10r10") 10)
-  (test-equal? "base 16" (parse-nrm-number "16r10") 16)
-  (test-equal? "base 16" (parse-nrm-number "16rFF") 255)
-  (test-equal? "base 16 separators" (parse-nrm-number "16rFE_FF") 65279)
+               (token-value (parse-nrm-number #f #f #f "10r10")) 10)
+  (test-equal? "base 16"
+               (token-value (parse-nrm-number #f #f #f "16r10")) 16)
+  (test-equal? "base 16"
+               (token-value (parse-nrm-number #f #f #f "16rFF")) 255)
+  (test-equal? "base 16 separators"
+               (token-value (parse-nrm-number #f #f #f "16rFE_FF")) 65279)
 
-  (test-equal? "implicit base 10" (parse-nrm-number "10") 10)
-  (test-equal? "with separators"  (parse-nrm-number "1_000_000") 1000000))
+  (test-equal? "implicit base 10"
+               (token-value (parse-nrm-number #f #f #f "10")) 10)
+  (test-equal? "with separators"
+               (token-value (parse-nrm-number #f #f #f "1_000_000")) 1000000)
 
-(struct identifier (value) #:transparent)
-(struct keyword (value) #:transparent)
+  (test-exn "out of range igit"
+            exn:fail:read?
+            (lambda () (parse-nrm-number #f #f #f "10rA")))
+  (test-exn "out of range base"
+            exn:fail:read?
+            (lambda () (parse-nrm-number #f #f #f "37rA"))))
+
+(struct token (srcloc value) #:transparent)
+(struct identifier token () #:transparent)
+(struct keyword token () #:transparent)
+
+(define (make-token input-port start-pos end-pos tok value)
+  (tok (build-source-location-vector
+         (->srcloc input-port start-pos)
+         (->srcloc input-port end-pos))
+       value))
 
 (define (lex-string start-loc input-port)
   (define out-string (open-output-string))
   (define lex
     (lexer
       [(eof) (raise-read-eof-error "EOF encountered reading string"
-                                   start-loc
+                                   (->srcloc input-port start-loc)
                                    (->srcloc input-port end-pos))]
       [(:* (:~ #\'))
        (begin
@@ -86,34 +117,34 @@
        (begin
          (write-char #\' out-string)
          (lex input-port))]
-      [#\' (get-output-string out-string)]))
+      [#\' (make-token input-port start-loc end-pos token (get-output-string out-string))]))
   (lex input-port))
 
 (define smalltalk-lex
-  (lexer-src-pos
-    [(eof) (return-without-pos eof)]
+  (lexer
+    [(eof) eof]
     [(:+  whitespace)
-     (return-without-pos (smalltalk-lex input-port))]
+     (smalltalk-lex input-port)]
 
     [(:: #\" (:* (:~ #\")) #\")
-     (return-without-pos (smalltalk-lex input-port))]
+     (smalltalk-lex input-port)]
 
     [(:: (:** 1 2 numeric) #\r (:+ (:or #\_ alphabetic numeric)))
-     (parse-nrm-number lexeme)]
+     (parse-nrm-number input-port start-pos end-pos lexeme)]
 
     [(:: numeric (:* (:or #\_ numeric)))
-     (parse-nrm-number lexeme)]
+     (parse-nrm-number input-port start-pos end-pos lexeme)]
 
     [(:: (:or #\_ alphabetic)
          (:* alphabetic numeric)
          #\:)
-     (keyword (string->symbol lexeme))]
+     (make-token input-port start-pos end-pos keyword (string->symbol lexeme))]
 
     [(:: (:or #\_ alphabetic)
          (:* alphabetic numeric))
-     (identifier (string->symbol lexeme))]
+     (make-token input-port start-pos end-pos identifier (string->symbol lexeme))]
 
-    [(:: #\') (lex-string (->srcloc input-port start-pos) input-port)]
+    [(:: #\') (lex-string start-pos input-port)]
   ))
 
 (module+ test
@@ -121,16 +152,24 @@
     (check-match
       (call-with-input-string s
         (lambda (in)
-          (for/list ([tok (in-port smalltalk-lex in)])
-            (position-token-token tok))))
+          (for/list ([tok (in-port smalltalk-lex in)]) tok)))
       (list pats ...)))
 
-  (test-case "identifier - abc"      (check-tokens "abc" (identifier 'abc)))
-  (test-case "keyword - abc:"        (check-tokens "abc:" (keyword 'abc:)))
-  (test-case "comments"              (check-tokens "\"this is a comment\" abc" (identifier 'abc)))
-  (test-case "numbers"               (check-tokens "16rFF raisedTo: 2" 255 (keyword 'raisedTo:) 2))
-  (test-case "strings"               (check-tokens "'one' 'two' 'three'" "one" "two" "three"))
-  (test-case "escaped strings"       (check-tokens "'''one'' two three'" "'one' two three"))
+  (test-case "identifier - abc"
+             (check-tokens "abc" (identifier _ 'abc)))
+  (test-case "keyword - abc:"
+             (check-tokens "abc:" (keyword _ 'abc:)))
+  (test-case "comments"
+             (check-tokens "\"this is a comment\" abc" (identifier _ 'abc)))
+  (test-case "numbers"
+             (check-tokens "16rFF raisedTo: 2"
+                           (token _ 255) (keyword _ 'raisedTo:) (token _ 2)))
+  (test-case "strings"
+             (check-tokens "'one' 'two' 'three'"
+                           (token _ "one") (token _ "two") (token _ "three")))
+  (test-case "escaped strings"
+             (check-tokens "'''one'' two three'"
+                           (token _ "'one' two three")))
   (test-case "no string termination"
-    (check-exn exn:fail:read:eof? (lambda () (check-tokens "'oops" ""))))
+             (check-exn exn:fail:read:eof? (lambda () (check-tokens "'oops" ""))))
 )
