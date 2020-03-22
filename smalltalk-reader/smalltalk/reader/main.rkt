@@ -121,6 +121,7 @@
                             [(_ make value)
                              (make-token input-port start-pos end-pos make value)])])
     (lexer
+      ;; whitespace and comments
       [(eof) eof]
       [(:+  whitespace)
        (smalltalk-lex input-port)]
@@ -128,23 +129,28 @@
       [(:: #\" (:* (:~ #\")) #\")
        (smalltalk-lex input-port)]
 
+      ;; integers
       [(:: (:** 1 2 numeric) #\r (:+ (:or #\_ alphabetic numeric)))
        ($token parse-nrm-number lexeme)]
 
       [(:: numeric (:* (:or #\_ numeric)))
        ($token parse-nrm-number lexeme)]
 
+      ;; keywords
       [(:: (:or #\_ alphabetic)
            (:* alphabetic numeric)
            #\:)
        ($token keyword (string->symbol lexeme))]
 
+      ;; identifiers
       [(:: (:or #\_ alphabetic)
            (:* alphabetic numeric))
        ($token identifier (string->symbol lexeme))]
 
+      ;; strings
       [(:: #\') (lex-string start-pos input-port)]
 
+      ;; delimiters
       [#\. ($token delimiter 'dot)]
       [#\; ($token delimiter 'cascade)]
       [#\^ ($token delimiter 'caret)]
