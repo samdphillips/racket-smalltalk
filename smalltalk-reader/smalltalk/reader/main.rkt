@@ -19,14 +19,13 @@
                      source)
                  line column offset 0))))
 
-(define ((make-raise-read-error	raise-proc) message start-loc end-loc)
-  (let ([srcloc (build-source-location-vector start-loc end-loc)])
-    (raise-proc message
-                (source-location-source   srcloc)
-                (source-location-line     srcloc)
-                (source-location-column   srcloc)
-                (source-location-position srcloc)
-                (source-location-span     srcloc))))
+(define ((make-raise-read-error	raise-proc) message srcloc)
+ (raise-proc message
+             (source-location-source   srcloc)
+             (source-location-line     srcloc)
+             (source-location-column   srcloc)
+             (source-location-position srcloc)
+             (source-location-span     srcloc)))
 
 (define raise-read-error (make-raise-read-error -raise-read-error))
 (define raise-read-eof-error (make-raise-read-error -raise-read-eof-error))
@@ -37,17 +36,14 @@
 (define ALPHA (char->integer #\a))
 (define ZED   (char->integer #\z))
 
-(define (parse-nrm-number input-port start-pos end-pos s)
+(define (parse-nrm-number srcloc numeric-string)
   (define-values (base igits)
-    (match s
+    (match numeric-string
       [(pregexp #px"^(\\d\\d?)r(.*)" (list _ base igits))
        (values (string->number base) igits)]
       [igits (values 10 igits)]))
   (when (or (< base 2) (> base 36))
-    (raise-read-error
-      (format "base (~a) out of range [2,36]" base)
-      (->srcloc input-port start-pos)
-      (->srcloc input-port end-pos)))
+    (raise-read-error (format "base (~a) out of range [2,36]" base) srcloc))
   (define (char->value c)
     (define v
       (let ([cp (char->integer (char-downcase c))])
@@ -57,40 +53,37 @@
     (cond
       [(< v base) v]
       [else
-        (raise-read-error
-          (format "value (~a) out of range for base (~a)" c base)
-          (->srcloc input-port start-pos)
-          (->srcloc input-port end-pos))]))
-  (for/fold ([v 0] #:result (make-token input-port start-pos end-pos token v))
+        (raise-read-error (format "value (~a) out of range for base (~a)" c base) srcloc)]))
+  (for/fold ([v 0] #:result (token srcloc v))
             ([c (in-string igits)]
              #:unless (char=? c #\_))
     (+ (char->value c) (* base v))))
 
 (module+ test
   (test-equal? "base 2"
-               (token-value (parse-nrm-number #f #f #f "2r10")) 2)
+               (token-value (parse-nrm-number #f "2r10")) 2)
   (test-equal? "base 6"
-               (token-value (parse-nrm-number #f #f #f "6r10")) 6)
+               (token-value (parse-nrm-number #f "6r10")) 6)
   (test-equal? "explicit base 10"
-               (token-value (parse-nrm-number #f #f #f "10r10")) 10)
+               (token-value (parse-nrm-number #f "10r10")) 10)
   (test-equal? "base 16"
-               (token-value (parse-nrm-number #f #f #f "16r10")) 16)
+               (token-value (parse-nrm-number #f "16r10")) 16)
   (test-equal? "base 16"
-               (token-value (parse-nrm-number #f #f #f "16rFF")) 255)
+               (token-value (parse-nrm-number #f "16rFF")) 255)
   (test-equal? "base 16 separators"
-               (token-value (parse-nrm-number #f #f #f "16rFE_FF")) 65279)
+               (token-value (parse-nrm-number #f "16rFE_FF")) 65279)
 
   (test-equal? "implicit base 10"
-               (token-value (parse-nrm-number #f #f #f "10")) 10)
+               (token-value (parse-nrm-number #f "10")) 10)
   (test-equal? "with separators"
-               (token-value (parse-nrm-number #f #f #f "1_000_000")) 1000000)
+               (token-value (parse-nrm-number #f "1_000_000")) 1000000)
 
   (test-exn "out of range igit"
             exn:fail:read?
-            (lambda () (parse-nrm-number #f #f #f "10rA")))
+            (lambda () (parse-nrm-number #f "10rA")))
   (test-exn "out of range base"
             exn:fail:read?
-            (lambda () (parse-nrm-number #f #f #f "37rA"))))
+            (lambda () (parse-nrm-number #f "37rA"))))
 
 (struct token (srcloc value) #:transparent)
 (struct identifier token () #:transparent)
@@ -107,8 +100,9 @@
   (define lex
     (lexer
       [(eof) (raise-read-eof-error "EOF encountered reading string"
-                                   (->srcloc input-port start-loc)
-                                   (->srcloc input-port end-pos))]
+                                   (build-source-location-vector
+                                     (->srcloc input-port start-loc)
+                                     (->srcloc input-port end-pos)))]
       [(:* (:~ #\'))
        (begin
          (write-string lexeme out-string)
@@ -121,31 +115,35 @@
   (lex input-port))
 
 (define smalltalk-lex
-  (lexer
-    [(eof) eof]
-    [(:+  whitespace)
-     (smalltalk-lex input-port)]
+  (letrec-syntax ([$token (syntax-rules ()
+                            [(_ value) ($token token value)]
+                            [(_ make value)
+                             (make-token input-port start-pos end-pos make value)])])
+    (lexer
+      [(eof) eof]
+      [(:+  whitespace)
+       (smalltalk-lex input-port)]
 
-    [(:: #\" (:* (:~ #\")) #\")
-     (smalltalk-lex input-port)]
+      [(:: #\" (:* (:~ #\")) #\")
+       (smalltalk-lex input-port)]
 
-    [(:: (:** 1 2 numeric) #\r (:+ (:or #\_ alphabetic numeric)))
-     (parse-nrm-number input-port start-pos end-pos lexeme)]
+      [(:: (:** 1 2 numeric) #\r (:+ (:or #\_ alphabetic numeric)))
+       ($token parse-nrm-number lexeme)]
 
-    [(:: numeric (:* (:or #\_ numeric)))
-     (parse-nrm-number input-port start-pos end-pos lexeme)]
+      [(:: numeric (:* (:or #\_ numeric)))
+       ($token parse-nrm-number lexeme)]
 
-    [(:: (:or #\_ alphabetic)
-         (:* alphabetic numeric)
-         #\:)
-     (make-token input-port start-pos end-pos keyword (string->symbol lexeme))]
+      [(:: (:or #\_ alphabetic)
+           (:* alphabetic numeric)
+           #\:)
+       ($token keyword (string->symbol lexeme))]
 
-    [(:: (:or #\_ alphabetic)
-         (:* alphabetic numeric))
-     (make-token input-port start-pos end-pos identifier (string->symbol lexeme))]
+      [(:: (:or #\_ alphabetic)
+           (:* alphabetic numeric))
+       ($token identifier (string->symbol lexeme))]
 
-    [(:: #\') (lex-string start-pos input-port)]
-  ))
+      [(:: #\') (lex-string start-pos input-port)]
+    )))
 
 (module+ test
   (define-simple-macro (check-tokens s pats ...)
