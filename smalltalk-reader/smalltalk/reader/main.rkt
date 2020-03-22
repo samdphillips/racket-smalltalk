@@ -88,6 +88,7 @@
 (struct token (srcloc value) #:transparent)
 (struct identifier token () #:transparent)
 (struct keyword token () #:transparent)
+(struct delimiter token () #:transparent)
 
 (define (make-token input-port start-pos end-pos tok value)
   (tok (build-source-location-vector
@@ -143,6 +144,10 @@
        ($token identifier (string->symbol lexeme))]
 
       [(:: #\') (lex-string start-pos input-port)]
+
+      [#\. ($token delimiter 'dot)]
+      [#\; ($token delimiter 'cascade)]
+      [#\^ ($token delimiter 'caret)]
     )))
 
 (module+ test
@@ -170,4 +175,10 @@
                            (token _ "'one' two three")))
   (test-case "no string termination"
              (check-exn exn:fail:read:eof? (lambda () (check-tokens "'oops" ""))))
+
+  (test-case "delimiters"
+             (check-tokens ". ; ^"
+                           (delimiter _ 'dot)
+                           (delimiter _ 'cascade)
+                           (delimiter _ 'caret)))
 )
