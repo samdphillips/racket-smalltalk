@@ -89,6 +89,8 @@
 (struct identifier token () #:transparent)
 (struct keyword token () #:transparent)
 (struct delimiter token () #:transparent)
+(struct opener token () #:transparent)
+(struct closer token () #:transparent)
 
 (define (make-token input-port start-pos end-pos tok value)
   (tok (build-source-location-vector
@@ -154,6 +156,14 @@
       [#\. ($token delimiter 'dot)]
       [#\; ($token delimiter 'cascade)]
       [#\^ ($token delimiter 'caret)]
+
+      ;; openers
+      [(:or (char-set "([{") (:: #\# (char-set "([{")))
+       ($token opener lexeme)]
+
+      ;; closers
+      [(char-set ")]}")
+       ($token closer lexeme)]
     )))
 
 (module+ test
