@@ -27,8 +27,10 @@
              (source-location-position srcloc)
              (source-location-span     srcloc)))
 
-(define raise-read-error (make-raise-read-error -raise-read-error))
-(define raise-read-eof-error (make-raise-read-error -raise-read-eof-error))
+(define raise-read-error
+  (make-raise-read-error -raise-read-error))
+(define raise-read-eof-error
+  (make-raise-read-error -raise-read-eof-error))
 
 (define ZERO (char->integer #\0))
 (define NINE (char->integer #\9))
@@ -43,7 +45,8 @@
        (values (string->number base) igits)]
       [igits (values 10 igits)]))
   (when (or (< base 2) (> base 36))
-    (raise-read-error (format "base (~a) out of range [2,36]" base) srcloc))
+    (raise-read-error
+      (format "base (~a) out of range [2,36]" base) srcloc))
   (define (char->value c)
     (define v
       (let ([cp (char->integer (char-downcase c))])
@@ -53,7 +56,9 @@
     (cond
       [(< v base) v]
       [else
-        (raise-read-error (format "value (~a) out of range for base (~a)" c base) srcloc)]))
+        (raise-read-error
+          (format "value (~a) out of range for base (~a)" c base)
+          srcloc)]))
   (for/fold ([v 0] #:result (token srcloc v))
             ([c (in-string igits)]
              #:unless (char=? c #\_))
@@ -76,7 +81,9 @@
   (test-equal? "implicit base 10"
                (token-value (parse-nrm-number #f "10")) 10)
   (test-equal? "with separators"
-               (token-value (parse-nrm-number #f "1_000_000")) 1000000)
+               (token-value
+                 (parse-nrm-number #f "1_000_000"))
+               1000000)
 
   (test-exn "out of range igit"
             exn:fail:read?
@@ -114,14 +121,19 @@
        (begin
          (write-char #\' out-string)
          (lex input-port))]
-      [#\' (make-token input-port start-loc end-pos token (get-output-string out-string))]))
+      [#\'
+       (make-token
+         input-port start-loc end-pos
+         token (get-output-string out-string))]))
   (lex input-port))
 
 (define smalltalk-lex
-  (letrec-syntax ([$token (syntax-rules ()
-                            [(_ value) ($token token value)]
-                            [(_ make value)
-                             (make-token input-port start-pos end-pos make value)])])
+  (letrec-syntax ([$token
+                    (syntax-rules ()
+                      [(_ value) ($token token value)]
+                      [(_ make value)
+                       (make-token
+                         input-port start-pos end-pos make value)])])
     (lexer
       ;; whitespace and comments
       [(eof) eof]
@@ -179,22 +191,25 @@
   (test-case "keyword - abc:"
              (check-tokens "abc:" (keyword _ 'abc:)))
   (test-case "comments"
-             (check-tokens "\"this is a comment\" abc" (identifier _ 'abc)))
+             (check-tokens
+               "\"this is a comment\" abc" (identifier _ 'abc)))
   (test-case "numbers"
-             (check-tokens "16rFF raisedTo: 2"
-                           (token _ 255) (keyword _ 'raisedTo:) (token _ 2)))
+             (check-tokens
+               "16rFF raisedTo: 2"
+               (token _ 255) (keyword _ 'raisedTo:) (token _ 2)))
   (test-case "strings"
-             (check-tokens "'one' 'two' 'three'"
-                           (token _ "one") (token _ "two") (token _ "three")))
+             (check-tokens
+               "'one' 'two' 'three'"
+               (token _ "one") (token _ "two") (token _ "three")))
   (test-case "escaped strings"
              (check-tokens "'''one'' two three'"
                            (token _ "'one' two three")))
   (test-case "no string termination"
-             (check-exn exn:fail:read:eof? (lambda () (check-tokens "'oops" ""))))
+             (check-exn exn:fail:read:eof?
+                        (lambda () (check-tokens "'oops" ""))))
 
   (test-case "delimiters"
              (check-tokens ". ; ^"
                            (delimiter _ 'dot)
                            (delimiter _ 'cascade)
-                           (delimiter _ 'caret)))
-)
+                           (delimiter _ 'caret))))
