@@ -2,5 +2,6 @@
 
 (define collection 'multi)
 (define version "0.0.1")
-(define deps '("base"))
-(define build-deps '("base"))
+(define deps '("base" "parser-tools-lib"))
+(define build-deps '("base" "rackunit-lib"))
+
