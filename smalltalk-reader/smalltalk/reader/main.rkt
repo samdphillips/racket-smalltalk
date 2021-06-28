@@ -179,7 +179,7 @@
     )))
 
 (module+ test
-  (define-simple-macro (check-tokens s pats ...)
+  (define-syntax-parse-rule (check-tokens s pats ...)
     (check-match
       (call-with-input-string s
         (lambda (in)
