@@ -1,5 +1,18 @@
 #lang racket/base
 
+(require racket/contract)
+
+(provide (contract-out
+          [smalltalk-read (->* () (input-port?) token?)]
+          [token-srcloc   (-> token? source-location?)]
+          [token-value    (-> token? any)])
+         token?
+         identifier?
+         keyword?
+         delimiter?
+         opener?
+         closer?)
+
 (require racket/match
          (prefix-in - syntax/readerr)
          syntax/srcloc
@@ -20,12 +33,12 @@
                  line column offset 0))))
 
 (define ((make-raise-read-error	raise-proc) message srcloc)
- (raise-proc message
-             (source-location-source   srcloc)
-             (source-location-line     srcloc)
-             (source-location-column   srcloc)
-             (source-location-position srcloc)
-             (source-location-span     srcloc)))
+  (raise-proc message
+              (source-location-source   srcloc)
+              (source-location-line     srcloc)
+              (source-location-column   srcloc)
+              (source-location-position srcloc)
+              (source-location-span     srcloc)))
 
 (define raise-read-error
   (make-raise-read-error -raise-read-error))
@@ -46,7 +59,7 @@
       [igits (values 10 igits)]))
   (when (or (< base 2) (> base 36))
     (raise-read-error
-      (format "base (~a) out of range [2,36]" base) srcloc))
+     (format "base (~a) out of range [2,36]" base) srcloc))
   (define (char->value c)
     (define v
       (let ([cp (char->integer (char-downcase c))])
@@ -56,9 +69,9 @@
     (cond
       [(< v base) v]
       [else
-        (raise-read-error
-          (format "value (~a) out of range for base (~a)" c base)
-          srcloc)]))
+       (raise-read-error
+        (format "value (~a) out of range for base (~a)" c base)
+        srcloc)]))
   (for/fold ([v 0] #:result (token srcloc v))
             ([c (in-string igits)]
              #:unless (char=? c #\_))
@@ -82,7 +95,7 @@
                (token-value (parse-nrm-number #f "10")) 10)
   (test-equal? "with separators"
                (token-value
-                 (parse-nrm-number #f "1_000_000"))
+                (parse-nrm-number #f "1_000_000"))
                1000000)
 
   (test-exn "out of range igit"
@@ -101,90 +114,95 @@
 
 (define (make-token input-port start-pos end-pos tok value)
   (tok (build-source-location-vector
-         (->srcloc input-port start-pos)
-         (->srcloc input-port end-pos))
+        (->srcloc input-port start-pos)
+        (->srcloc input-port end-pos))
        value))
 
 (define (lex-string start-loc input-port)
   (define out-string (open-output-string))
   (define lex
     (lexer
-      [(eof) (raise-read-eof-error "EOF encountered reading string"
-                                   (build-source-location-vector
-                                     (->srcloc input-port start-loc)
-                                     (->srcloc input-port end-pos)))]
-      [(:* (:~ #\'))
-       (begin
-         (write-string lexeme out-string)
-         (lex input-port))]
-      [(:: #\' #\')
-       (begin
-         (write-char #\' out-string)
-         (lex input-port))]
-      [#\'
-       (make-token
-         input-port start-loc end-pos
-         token (get-output-string out-string))]))
+     [(eof) (raise-read-eof-error "EOF encountered reading string"
+                                  (build-source-location-vector
+                                   (->srcloc input-port start-loc)
+                                   (->srcloc input-port end-pos)))]
+     [(:* (:~ #\'))
+      (begin
+        (write-string lexeme out-string)
+        (lex input-port))]
+     [(:: #\' #\')
+      (begin
+        (write-char #\' out-string)
+        (lex input-port))]
+     [#\'
+      (make-token
+       input-port start-loc end-pos
+       token (get-output-string out-string))]))
   (lex input-port))
 
 (define smalltalk-lex
   (letrec-syntax ([$token
-                    (syntax-rules ()
-                      [(_ value) ($token token value)]
-                      [(_ make value)
-                       (make-token
-                         input-port start-pos end-pos make value)])])
+                   (syntax-rules ()
+                     [(_ value) ($token token value)]
+                     [(_ make value)
+                      (make-token
+                       input-port start-pos end-pos make value)])])
     (lexer
-      ;; whitespace and comments
-      [(eof) eof]
-      [(:+  whitespace)
-       (smalltalk-lex input-port)]
+     ;; whitespace
+     [(eof) eof]
+     [(:+  whitespace)
+      (smalltalk-lex input-port)]
 
-      [(:: #\" (:* (:~ #\")) #\")
-       (smalltalk-lex input-port)]
+     ;; comments
+     [(:: #\" (:* (:~ #\")) #\")
+      (smalltalk-lex input-port)]
 
-      ;; integers
-      [(:: (:** 1 2 numeric) #\r (:+ (:or #\_ alphabetic numeric)))
-       ($token parse-nrm-number lexeme)]
+     ;; integers - nrm format
+     [(:: (:** 1 2 numeric) #\r (:+ (:or #\_ alphabetic numeric)))
+      ($token parse-nrm-number lexeme)]
 
-      [(:: numeric (:* (:or #\_ numeric)))
-       ($token parse-nrm-number lexeme)]
+     ;; integers - base 10
+     [(:: numeric (:* (:or #\_ numeric)))
+      ($token parse-nrm-number lexeme)]
 
-      ;; keywords
-      [(:: (:or #\_ alphabetic)
-           (:* alphabetic numeric)
-           #\:)
-       ($token keyword (string->symbol lexeme))]
+     ;; keywords
+     [(:: (:or #\_ alphabetic)
+          (:* alphabetic numeric)
+          #\:)
+      ($token keyword (string->symbol lexeme))]
 
-      ;; identifiers
-      [(:: (:or #\_ alphabetic)
-           (:* alphabetic numeric))
-       ($token identifier (string->symbol lexeme))]
+     ;; identifiers
+     [(:: (:or #\_ alphabetic)
+          (:* alphabetic numeric))
+      ($token identifier (string->symbol lexeme))]
 
-      ;; strings
-      [(:: #\') (lex-string start-pos input-port)]
+     ;; strings
+     [(:: #\') (lex-string start-pos input-port)]
 
-      ;; delimiters
-      [#\. ($token delimiter 'dot)]
-      [#\; ($token delimiter 'cascade)]
-      [#\^ ($token delimiter 'caret)]
+     ;; delimiters
+     [#\. ($token delimiter 'dot)]
+     [#\; ($token delimiter 'cascade)]
+     [#\^ ($token delimiter 'caret)]
 
-      ;; openers
-      [(:or (char-set "([{") (:: #\# (char-set "([{")))
-       ($token opener lexeme)]
+     ;; openers
+     [(:or (char-set "([{") (:: #\# (char-set "([{")))
+      ($token opener lexeme)]
 
-      ;; closers
-      [(char-set ")]}")
-       ($token closer lexeme)]
-    )))
+     ;; closers
+     [(char-set ")]}")
+      ($token closer lexeme)]
+     )))
+
+(define (smalltalk-read [input-port (current-input-port)])
+  (smalltalk-lex input-port))
 
 (module+ test
   (define-syntax-parse-rule (check-tokens s pats ...)
     (check-match
-      (call-with-input-string s
-        (lambda (in)
-          (for/list ([tok (in-port smalltalk-lex in)]) tok)))
-      (list pats ...)))
+     (call-with-input-string s
+                             (lambda (in)
+                               (for/list ([tok (in-port smalltalk-lex in)]) tok)))
+     (list pats ...)))
 
   (test-case "identifier - abc"
              (check-tokens "abc" (identifier _ 'abc)))
@@ -192,15 +210,15 @@
              (check-tokens "abc:" (keyword _ 'abc:)))
   (test-case "comments"
              (check-tokens
-               "\"this is a comment\" abc" (identifier _ 'abc)))
+              "\"this is a comment\" abc" (identifier _ 'abc)))
   (test-case "numbers"
              (check-tokens
-               "16rFF raisedTo: 2"
-               (token _ 255) (keyword _ 'raisedTo:) (token _ 2)))
+              "16rFF raisedTo: 2"
+              (token _ 255) (keyword _ 'raisedTo:) (token _ 2)))
   (test-case "strings"
              (check-tokens
-               "'one' 'two' 'three'"
-               (token _ "one") (token _ "two") (token _ "three")))
+              "'one' 'two' 'three'"
+              (token _ "one") (token _ "two") (token _ "three")))
   (test-case "escaped strings"
              (check-tokens "'''one'' two three'"
                            (token _ "'one' two three")))
