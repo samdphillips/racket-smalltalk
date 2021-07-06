@@ -3,7 +3,7 @@
 (require racket/contract)
 
 (provide (contract-out
-          [smalltalk-read (->* () (input-port?) token?)]
+          [smalltalk-read (->* () (input-port?) (or/c eof-object? token?))]
           [token-srcloc   (-> token? source-location?)]
           [token-value    (-> token? any)])
          token?
