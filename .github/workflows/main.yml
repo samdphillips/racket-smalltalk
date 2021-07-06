@@ -16,10 +16,10 @@ jobs:
           distribution: full
           variant: ${{ matrix.racket-variant }}
           version: ${{ matrix.racket-version }}
-      - name: Installing smalltalk-reader and its dependencies
-        run: raco pkg install --no-docs --auto --link smalltalk-reader
-      - name: Compiling smalltalk-reader and docs
-        run: raco setup --check-pkg-deps --unused-pkg-deps --pkgs smalltalk-reader
-      - name: Testing smalltalk-reader
-        run: raco test -xt -p smalltalk-reader
+      - name: Installing packages and their dependencies
+        run: raco pkg install --no-docs --auto --link smalltalk-reader smalltalk-parser
+      - name: Compiling packages and their docs
+        run: raco setup --check-pkg-deps --unused-pkg-deps --pkgs smalltalk-reader smalltalk-parser
+      - name: Testing packages
+        run: raco test -xt -p smalltalk-reader smalltalk-parser
 
