@@ -9,6 +9,7 @@
           [token-value    (-> token? any)])
          token?
          identifier?
+         binary-selector?
          keyword?
          delimiter?
          opener?
@@ -107,11 +108,12 @@
             (lambda () (parse-nrm-number #f "37rA"))))
 
 (struct token (srcloc value) #:transparent)
-(struct identifier token () #:transparent)
-(struct keyword token () #:transparent)
-(struct delimiter token () #:transparent)
-(struct opener token () #:transparent)
-(struct closer token () #:transparent)
+(struct identifier      token () #:transparent)
+(struct binary-selector token () #:transparent)
+(struct keyword         token () #:transparent)
+(struct delimiter       token () #:transparent)
+(struct opener          token () #:transparent)
+(struct closer          token () #:transparent)
 
 (define (make-token input-port start-pos end-pos tok value)
   (tok (build-source-location-vector
@@ -172,6 +174,10 @@
           #\:)
       ($token keyword (string->symbol lexeme))]
 
+     ;; binary selector
+     [(:+ (char-set "~!@%&*-+=\\|,<>/"))
+      ($token binary-selector (string->symbol lexeme))]
+     
      ;; identifiers
      [(:: (:or #\_ alphabetic)
           (:* alphabetic numeric))
@@ -207,22 +213,39 @@
 
   (test-case "identifier - abc"
              (check-tokens "abc" (identifier _ 'abc)))
+
+  (test-case "binary selectors"
+             (check-tokens "+ - / * @ < > <+>"
+                           (binary-selector _ '+)
+                           (binary-selector _ '-)
+                           (binary-selector _ '/)
+                           (binary-selector _ '*)
+                           (binary-selector _ '@)
+                           (binary-selector _ '<)
+                           (binary-selector _ '>)
+                           (binary-selector _ '<+>)))
+  
   (test-case "keyword - abc:"
              (check-tokens "abc:" (keyword _ 'abc:)))
+
   (test-case "comments"
              (check-tokens
               "\"this is a comment\" abc" (identifier _ 'abc)))
+
   (test-case "numbers"
              (check-tokens
               "16rFF raisedTo: 2"
               (token _ 255) (keyword _ 'raisedTo:) (token _ 2)))
+
   (test-case "strings"
              (check-tokens
               "'one' 'two' 'three'"
               (token _ "one") (token _ "two") (token _ "three")))
+
   (test-case "escaped strings"
              (check-tokens "'''one'' two three'"
                            (token _ "'one' two three")))
+
   (test-case "no string termination"
              (check-exn exn:fail:read:eof?
                         (lambda () (check-tokens "'oops" ""))))
