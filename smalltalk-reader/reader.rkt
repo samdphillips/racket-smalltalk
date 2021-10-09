@@ -3,7 +3,8 @@
 (require racket/contract)
 
 (provide (contract-out
-          [smalltalk-read (->* () (input-port?) token?)]
+          [smalltalk-read
+           (->* () (input-port?) (or/c eof-object? token?))]
           [token-srcloc   (-> token? source-location?)]
           [token-value    (-> token? any)])
          token?
@@ -200,8 +201,8 @@
   (define-syntax-parse-rule (check-tokens s pats ...)
     (check-match
      (call-with-input-string s
-                             (lambda (in)
-                               (for/list ([tok (in-port smalltalk-lex in)]) tok)))
+       (lambda (in)
+         (for/list ([tok (in-port smalltalk-lex in)]) tok)))
      (list pats ...)))
 
   (test-case "identifier - abc"
