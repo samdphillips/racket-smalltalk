@@ -6,11 +6,11 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        racket-version: ["stable", "current"]
+        racket-version: ["8.1", "8.2", "stable", "current"]
         racket-variant: ["BC", "CS"]
     steps:
       - uses: actions/checkout@v2
-      - uses: Bogdanp/setup-racket@v1.5
+      - uses: Bogdanp/setup-racket@v1.6
         with:
           architecture: x64
           distribution: full
@@ -24,4 +24,3 @@ jobs:
         run: raco setup --check-pkg-deps --unused-pkg-deps --pkgs smalltalk-parser
       - name: Testing packages
         run: raco test -xt -p smalltalk-reader smalltalk-parser
-
