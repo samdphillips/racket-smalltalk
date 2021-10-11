@@ -22,7 +22,7 @@
     (token->syntax/p
      (or/p (satisfy/p identifier?)
            (satisfy/p token-integer?)
-          ))))
+           ))))
 
 (define-unit default-st:message@
   (import st:primary^)
@@ -33,25 +33,40 @@
            (token->syntax/p (satisfy/p identifier?)))
           (return/p null)))
 
-  (define st:binary-msg/p  (return/p #f))
+  (define st:binary-msg/p
+    (or/p (many1/p
+           (do/p [bmsg   <- (token->syntax/p
+                             (satisfy/p binary-selector?))]
+                 [arg-p  <- st:primary/p]
+                 [arg-m* <- st:unary-msg/p]
+                 (return/p
+                  (cons bmsg (build-unary-send-stx arg-p arg-m*)))))
+          (return/p null)))                 
+
   (define st:keyword-msg/p (return/p #f))
 
   (define (build-unary-send-stx rcvr msg*)
     (for/fold ([rcvr rcvr]) ([m (in-list msg*)])
       #`(send #,rcvr #,m)))
+
+  (define (build-binary-send-stx rcvr msg+arg*)
+    (for/fold ([rcvr rcvr]) ([ma (in-list msg+arg*)])
+      (define m (car ma))
+      (define a (cdr ma))
+      #`(send #,rcvr #,m #,a)))
   
   (define (build-send-stx rcvr msg+args) rcvr)
   
   (define st:message/p
     (do/p [p     <- st:primary/p]
           [umsg* <- st:unary-msg/p]
-          [bmsg  <- st:binary-msg/p]
+          [bmsg* <- st:binary-msg/p]
           [kmsg  <- st:keyword-msg/p]
           #;
           [casc <- st:cascade/p]
           (return/p
            (~> (build-unary-send-stx p umsg*)
-               (build-send-stx bmsg)
+               (build-binary-send-stx bmsg*)
                (build-send-stx kmsg)))))
   )
 
@@ -80,8 +95,10 @@
   (test-parse "123 factorial")
   (test-parse "12345 toString size")
 
+  (test-parse "3 + 4")
+  (test-parse "3 factorial + 4 factorial")
+
   )
 
 
 
-  
