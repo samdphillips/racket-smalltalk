@@ -8,6 +8,8 @@
            (->* () (input-port?) (or/c eof-object? token?))]
           [token-value    (-> token? any)])
          token?
+         token-integer?
+         token-string?
          identifier?
          binary-selector?
          keyword?
@@ -117,6 +119,12 @@
 (struct delimiter       token () #:transparent)
 (struct opener          token () #:transparent)
 (struct closer          token () #:transparent)
+
+(define ((make-token-value-pred pred?) tok)
+  (and (token? tok) (pred? (token-value tok))))
+
+(define token-integer? (make-token-value-pred integer?))
+(define token-string?  (make-token-value-pred string?))
 
 (define (make-token input-port start-pos end-pos tok value)
   (tok (build-source-location-vector
