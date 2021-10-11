@@ -6,6 +6,7 @@
 (define deps
   '("base"
     "smalltalk-reader"
+    "threading-lib"
     "https://github.com/samdphillips/racket-microparsec.git?path=microparsec-lib"))
 (define build-deps '("base" "rackunit-lib"))
 
