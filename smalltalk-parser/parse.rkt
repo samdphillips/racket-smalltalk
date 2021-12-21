@@ -111,24 +111,24 @@
     (sequence->stream
      (in-port smalltalk-read p)))
 
-  (define (test-parse s)
+  (define (test-parse p s)
     (call-with-input-string s
       (lambda (i)
-        (define-values (p rest)
-          (parse st:message/p (port->stream i)))
-        p)))
+        (define-values (parsed rest)
+          (parse p (port->stream i)))
+        parsed)))
 
-  (test-parse "a toString")
-  (test-parse "123 factorial")
-  (test-parse "12345 toString size")
+  (test-parse st:message/p "a toString")
+  (test-parse st:message/p "123 factorial")
+  (test-parse st:message/p "12345 toString size")
 
-  (test-parse "3 + 4")
-  (test-parse "3 + 4 * 2")
-  (test-parse "3 factorial + 4 factorial")
+  (test-parse st:message/p "3 + 4")
+  (test-parse st:message/p "3 + 4 * 2")
+  (test-parse st:message/p "3 factorial + 4 factorial")
 
-  (test-parse "2 raisedTo: 5")
-  (test-parse "d at: 0 put: 1")
-  (test-parse "d at: 0 put: x + y")
+  (test-parse st:message/p "2 raisedTo: 5")
+  (test-parse st:message/p "d at: 0 put: 1")
+  (test-parse st:message/p "d at: 0 put: x + y")
 
   )
 
