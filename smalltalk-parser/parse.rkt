@@ -3,6 +3,7 @@
 (require microparsec
          racket/unit
          smalltalk/reader
+         syntax/srcloc
          threading)
 
 (define (token->syntax tok)
@@ -43,10 +44,20 @@
                   (cons bmsg (build-unary-send-stx arg-p arg-m*)))))
           (return/p null)))
 
-  (define st:keyword-msg/p (return/p #f))
+  (define st:keyword-msg/p
+    (or/p (many1/p
+            (do/p [kmsg   <- (token->syntax/p (satisfy/p keyword?))]
+                  [arg-p  <- st:primary/p]
+                  [arg-m* <- st:binary-msg/p]
+                  (return/p
+                    (cons kmsg (build-binary-send-stx arg-p arg-m*)))))
+          (return/p #f)))
 
   (define (make-send rcvr-stx msg-stx args-stx)
-    #`(#%st:send #,rcvr-stx #,msg-stx #,@args-stx))
+    (define srcloc
+      (apply build-source-location rcvr-stx msg-stx args-stx))
+    (quasisyntax/loc srcloc
+                     (#%st:send #,rcvr-stx #,msg-stx #,@args-stx)))
 
   (define (build-unary-send-stx rcvr msg*)
     (for/fold ([rcvr rcvr]) ([m (in-list msg*)])
@@ -58,7 +69,21 @@
       (define a (cdr ma))
       (make-send rcvr m (list a))))
 
-  (define (build-keyword-send-stx rcvr msg+args) rcvr)
+  (define (build-keyword-stx kws)
+    (define srcloc
+      (apply build-source-location kws))
+    (~>> (for/list ([k (in-list kws)])
+           (symbol->string (syntax->datum k)))
+         (apply string-append)
+         string->symbol
+         (datum->syntax #f _ srcloc)))
+
+  (define (build-keyword-send-stx rcvr msg+args)
+    (if msg+args
+        (make-send rcvr
+                   (build-keyword-stx (map car msg+args))
+                   (map cdr msg+args))
+        rcvr))
 
   (define st:message/p
     (do/p [p     <- st:primary/p]
@@ -70,8 +95,7 @@
           (return/p
            (~> (build-unary-send-stx p umsg*)
                (build-binary-send-stx bmsg*)
-               (build-keyword-send-stx kmsg)))))
-  )
+               (build-keyword-send-stx kmsg))))))
 
 
 (module* test #f
@@ -101,6 +125,10 @@
   (test-parse "3 + 4")
   (test-parse "3 + 4 * 2")
   (test-parse "3 factorial + 4 factorial")
+
+  (test-parse "2 raisedTo: 5")
+  (test-parse "d at: 0 put: 1")
+  (test-parse "d at: 0 put: x + y")
 
   )
 
