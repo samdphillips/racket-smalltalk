@@ -55,7 +55,9 @@
 
   (define (make-send rcvr-stx msg-stx args-stx)
     (define srcloc
-      (apply build-source-location rcvr-stx msg-stx args-stx))
+      ;; older Racket versions (<8.3) don't support general srcloc for
+      ;; syntax/loc and friends
+      (apply build-source-location-syntax rcvr-stx msg-stx args-stx))
     (quasisyntax/loc srcloc
                      (#%st:send #,rcvr-stx #,msg-stx #,@args-stx)))
 
@@ -71,7 +73,9 @@
 
   (define (build-keyword-stx kws)
     (define srcloc
-      (apply build-source-location kws))
+      ;; older Racket versions (<8.3) don't support general srcloc for
+      ;; syntax/loc and friends
+      (apply build-source-location-syntax kws))
     (~>> (for/list ([k (in-list kws)])
            (symbol->string (syntax->datum k)))
          (apply string-append)
