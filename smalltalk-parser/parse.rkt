@@ -46,11 +46,11 @@
 
   (define st:keyword-msg/p
     (or/p (many1/p
-            (do/p [kmsg   <- (token->syntax/p (satisfy/p keyword?))]
-                  [arg-p  <- st:primary/p]
-                  [arg-m* <- st:binary-msg/p]
-                  (return/p
-                    (cons kmsg (build-binary-send-stx arg-p arg-m*)))))
+           (do/p [kmsg   <- (token->syntax/p (satisfy/p keyword?))]
+                 [arg-p  <- st:primary/p]
+                 [arg-m* <- st:binary-msg/p]
+                 (return/p
+                  (cons kmsg (build-binary-send-stx arg-p arg-m*)))))
           (return/p #f)))
 
   (define (make-send rcvr-stx msg-stx args-stx)
@@ -59,7 +59,7 @@
       ;; syntax/loc and friends
       (apply build-source-location-syntax rcvr-stx msg-stx args-stx))
     (quasisyntax/loc srcloc
-                     (#%st:send #,rcvr-stx #,msg-stx #,@args-stx)))
+      (#%st:send #,rcvr-stx #,msg-stx #,@args-stx)))
 
   (define (build-unary-send-stx rcvr msg*)
     (for/fold ([rcvr rcvr]) ([m (in-list msg*)])
