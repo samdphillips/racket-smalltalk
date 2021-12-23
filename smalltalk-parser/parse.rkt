@@ -8,8 +8,12 @@
          "parse/primary.rkt")
 
 (module* test #f
-  (require racket/port
-           racket/stream)
+  (require racket/format
+           racket/port
+           racket/stream
+           rackunit
+           syntax/parse
+           syntax/parse/define)
 
   (define-values/invoke-unit/infer
     (export st:message^)
@@ -20,26 +24,51 @@
     (sequence->stream
      (in-port smalltalk-read p)))
 
-  (define (test-parse p s)
-    (call-with-input-string s
-      (lambda (i)
-        (define-values (parsed rest)
-          (parse p (port->stream i)))
-        parsed)))
+  (define-syntax-parse-rule (test-parse test/p:id str pat)
+    (test-case (~a "parse " (~s str) " with " 'test/p)
+      (call-with-input-string str
+        (lambda (inp)
+          (define-values (parsed rest)
+            (parse test/p (port->stream inp)))
+          (check-true (stream-empty? rest) "unparsed tail")
+          (check-true (syntax? parsed))
+          (check-true
+            (syntax-parse parsed
+              [pat #t]
+              [_ #f])
+            "syntax does not match pattern")))))
 
-  (test-parse st:message/p "a toString")
-  (test-parse st:message/p "123 factorial")
-  (test-parse st:message/p "12345 toString size")
+  (test-parse st:message/p "a toString"
+              ({~datum #%st:send} {~datum a} {~datum toString}))
 
-  (test-parse st:message/p "3 + 4")
-  (test-parse st:message/p "3 + 4 * 2")
-  (test-parse st:message/p "3 factorial + 4 factorial")
+  (test-parse st:message/p "123 factorial"
+              ({~datum #%st:send} 123 {~datum factorial}))
+  (test-parse st:message/p "12345 toString size"
+              ({~datum #%st:send}
+               ({~datum #%st:send} 12345 {~datum toString})
+               {~datum size}))
 
-  (test-parse st:message/p "2 raisedTo: 5")
-  (test-parse st:message/p "d at: 0 put: 1")
-  (test-parse st:message/p "d at: 0 put: x + y")
+  (test-parse st:message/p "3 + 4"
+              ({~datum #%st:send} 3 {~datum +} 4))
+  (test-parse st:message/p "3 + 4 * 2"
+              ({~datum #%st:send}
+               ({~datum #%st:send} 3 {~datum +} 4)
+               {~datum *} 2))
+  (test-parse st:message/p "3 factorial + 4 factorial"
+              ({~datum #%st:send}
+               ({~datum #%st:send} 3 {~datum factorial})
+               {~datum +}
+               ({~datum #%st:send} 4 {~datum factorial})))
+
+  (test-parse st:message/p "2 raisedTo: 5"
+              ({~datum #%st:send} 2 {~datum raisedTo:} 5))
+  (test-parse st:message/p "d at: 0 put: 1"
+              ({~datum #%st:send} {~datum d} {~datum at:put:} 0 1))
+  (test-parse st:message/p "d at: 0 put: x + y"
+              ({~datum #%st:send}
+               {~datum d} {~datum at:put:} 0
+               ({~datum #%st:send} {~datum x} {~datum +} {~datum y})))
+
 
   )
-
-
 
