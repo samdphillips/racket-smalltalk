@@ -30,13 +30,16 @@
         (lambda (inp)
           (define-values (parsed rest)
             (parse test/p (port->stream inp)))
-          (check-true (stream-empty? rest) "unparsed tail")
-          (check-true (syntax? parsed))
-          (check-true
-            (syntax-parse parsed
-              [pat #t]
-              [_ #f])
-            "syntax does not match pattern")))))
+          (with-check-info*
+              (list (make-check-info 'parsed parsed))
+            (lambda ()
+              (check-true (stream-empty? rest) "unparsed tail")
+              (check-true (syntax? parsed) "parsed is not syntax")
+              (check-true
+               (syntax-parse parsed
+                 [pat #t]
+                 [_ #f])
+               "syntax does not match pattern")))))))
 
   (test-parse st:message/p "a toString"
               ({~datum #%st:send} {~datum a} {~datum toString}))
@@ -69,6 +72,12 @@
                {~datum d} {~datum at:put:} 0
                ({~datum #%st:send} {~datum x} {~datum +} {~datum y})))
 
-
+  (test-parse st:message/p
+              "self new initialize: aCollection; add: 10; + 0; yourself"
+              ({~datum #%st:send*}
+               ({~datum #%st:send} {~datum self} {~datum new})
+               ({~datum initialize:} {~datum aCollection})
+               ({~datum add:} 10)
+               ({~datum +} 0)
+               ({~datum yourself})))
   )
-
