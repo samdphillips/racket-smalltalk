@@ -1,7 +1,6 @@
 #lang racket/base
 
 (require microparsec
-         racket/function
          racket/unit
          smalltalk/reader
          syntax/srcloc
@@ -51,11 +50,7 @@
              (return/p (quasisyntax/loc srcloc (#,msg #,@args)))))
           (return/p #f)))
 
-  (define cascade-token/p
-    (satisfy/p
-     (conjoin delimiter?
-              (lambda~> token-value
-                        (eq? 'cascade)))))
+  (define cascade-token/p (st:delimiter/p 'cascade))
 
   (define st:cascade/p
     (or/p (many1/p
