@@ -12,9 +12,11 @@
   (import)
   (export st:primary^)
 
+  (define st:identifier/p
+    (token->syntax/p (satisfy/p identifier?)))
+
   (define st:primary/p
-    (token->syntax/p
-     (or/p (satisfy/p identifier?)
-           (satisfy/p token-integer?)
-           ))))
+    (or/p st:identifier/p
+          (token->syntax/p
+            (satisfy/p token-integer?)))))
 

@@ -17,8 +17,7 @@
   (import st:primary^)
   (export st:message^)
 
-  (define st:unary-msg1/p
-    (token->syntax/p (satisfy/p identifier?)))
+  (define st:unary-msg1/p st:identifier/p)
 
   (define st:unary-msg/p
     (or/p (many1/p st:unary-msg1/p)
@@ -77,7 +76,7 @@
                         st:keyword-msg/p)))
           (return/p #f)))
 
-  (define (make-send rcvr-stx msg-stx args-stx)
+  (define (make-send-stx rcvr-stx msg-stx args-stx)
     (define srcloc
       ;; older Racket versions (<8.3) don't support general srcloc for
       ;; syntax/loc and friends
@@ -87,13 +86,13 @@
 
   (define (build-unary-send-stx rcvr msg*)
     (for/fold ([rcvr rcvr]) ([m (in-list msg*)])
-      (make-send rcvr m null)))
+      (make-send-stx rcvr m null)))
 
   (define (build-binary-send-stx rcvr msg+arg*)
     (for/fold ([rcvr rcvr]) ([ma (in-list msg+arg*)])
       (define m (car ma))
       (define a (cdr ma))
-      (make-send rcvr m (list a))))
+      (make-send-stx rcvr m (list a))))
 
   (define (build-keyword-stx kws)
     (define srcloc
@@ -110,7 +109,7 @@
     (if msg+args
         (syntax-case msg+args ()
           [(msg . args)
-           (make-send rcvr #'msg (syntax->list #'args))])
+           (make-send-stx rcvr #'msg (syntax->list #'args))])
         rcvr))
 
   (define (build-cascade-send-stx rcvr casc)

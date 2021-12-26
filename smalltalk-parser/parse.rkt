@@ -3,6 +3,7 @@
 (require microparsec
          racket/unit
          smalltalk/reader
+         "parse/expr.rkt"
          "parse/interface.rkt"
          "parse/message.rkt"
          "parse/primary.rkt")
@@ -16,9 +17,11 @@
            syntax/parse/define)
 
   (define-values/invoke-unit/infer
-    (export st:message^)
+    (export st:message^
+            st:expr^)
     (link default-st:primary@
-          default-st:message@))
+          default-st:message@
+          default-st:expr@))
 
   (define (port->stream p)
     (sequence->stream
@@ -80,4 +83,26 @@
                ({~datum add:} 10)
                ({~datum +} 0)
                ({~datum yourself})))
+
+  (test-parse st:expr/p
+              "Object new"
+              ({~datum #%st:send} {~datum Object} {~datum new}))
+  (test-parse st:expr/p
+              "x := 3 "
+              ({~datum #%st:assignment} {~datum x} 3))
+  (test-parse st:expr/p
+              "x := 3 + 4"
+              ({~datum #%st:assignment} {~datum x}
+               ({~datum #%st:send} 3 {~datum +} 4)))
+  (test-parse st:expr/p
+              "y := x := 3 "
+              ({~datum #%st:assignment} {~datum y}
+               ({~datum #%st:assignment} {~datum x} 3)))
+  (test-parse st:expr/p
+              "x := y"
+              ({~datum #%st:assignment} {~datum x} {~datum y}))
+  (test-parse st:expr/p
+              "x := y squared"
+              ({~datum #%st:assignment} {~datum x}
+               ({~datum #%st:send} {~datum y} {~datum squared})))
   )
