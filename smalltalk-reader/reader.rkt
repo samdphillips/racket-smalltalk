@@ -224,46 +224,46 @@
      (list pats ...)))
 
   (test-case "identifier - abc"
-             (check-tokens "abc" (identifier _ 'abc)))
+    (check-tokens "abc" (identifier _ 'abc)))
 
   (test-case "binary selectors"
-             (check-tokens "+ - / * @ < > <+>"
-                           (binary-selector _ '+)
-                           (binary-selector _ '-)
-                           (binary-selector _ '/)
-                           (binary-selector _ '*)
-                           (binary-selector _ '@)
-                           (binary-selector _ '<)
-                           (binary-selector _ '>)
-                           (binary-selector _ '<+>)))
+    (check-tokens "+ - / * @ < > <+>"
+                  (binary-selector _ '+)
+                  (binary-selector _ '-)
+                  (binary-selector _ '/)
+                  (binary-selector _ '*)
+                  (binary-selector _ '@)
+                  (binary-selector _ '<)
+                  (binary-selector _ '>)
+                  (binary-selector _ '<+>)))
   
   (test-case "keyword - abc:"
-             (check-tokens "abc:" (keyword _ 'abc:)))
+    (check-tokens "abc:" (keyword _ 'abc:)))
 
   (test-case "comments"
-             (check-tokens
-              "\"this is a comment\" abc" (identifier _ 'abc)))
+    (check-tokens
+     "\"this is a comment\" abc" (identifier _ 'abc)))
 
   (test-case "numbers"
-             (check-tokens
-              "16rFF raisedTo: 2"
-              (token _ 255) (keyword _ 'raisedTo:) (token _ 2)))
+    (check-tokens
+     "16rFF raisedTo: 2"
+     (token _ 255) (keyword _ 'raisedTo:) (token _ 2)))
 
   (test-case "strings"
-             (check-tokens
-              "'one' 'two' 'three'"
-              (token _ "one") (token _ "two") (token _ "three")))
+    (check-tokens
+     "'one' 'two' 'three'"
+     (token _ "one") (token _ "two") (token _ "three")))
 
   (test-case "escaped strings"
-             (check-tokens "'''one'' two three'"
-                           (token _ "'one' two three")))
+    (check-tokens "'''one'' two three'"
+                  (token _ "'one' two three")))
 
   (test-case "no string termination"
-             (check-exn exn:fail:read:eof?
-                        (lambda () (check-tokens "'oops" ""))))
+    (check-exn exn:fail:read:eof?
+               (lambda () (check-tokens "'oops" ""))))
 
   (test-case "delimiters"
-             (check-tokens ". ; ^"
-                           (delimiter _ 'dot)
-                           (delimiter _ 'cascade)
-                           (delimiter _ 'caret))))
+    (check-tokens ". ; ^"
+                  (delimiter _ 'dot)
+                  (delimiter _ 'cascade)
+                  (delimiter _ 'caret))))

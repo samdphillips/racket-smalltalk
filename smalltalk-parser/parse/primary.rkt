@@ -18,5 +18,5 @@
   (define st:primary/p
     (or/p st:identifier/p
           (token->syntax/p
-            (satisfy/p token-integer?)))))
+           (satisfy/p token-integer?)))))
 

@@ -92,17 +92,21 @@
               ({~datum #%st:assignment} {~datum x} 3))
   (test-parse st:expr/p
               "x := 3 + 4"
-              ({~datum #%st:assignment} {~datum x}
+              ({~datum #%st:assignment}
+               {~datum x}
                ({~datum #%st:send} 3 {~datum +} 4)))
   (test-parse st:expr/p
               "y := x := 3 "
-              ({~datum #%st:assignment} {~datum y}
+              ({~datum #%st:assignment}
+               {~datum y}
                ({~datum #%st:assignment} {~datum x} 3)))
   (test-parse st:expr/p
               "x := y"
-              ({~datum #%st:assignment} {~datum x} {~datum y}))
+              ({~datum #%st:assignment}
+               {~datum x} {~datum y}))
   (test-parse st:expr/p
               "x := y squared"
-              ({~datum #%st:assignment} {~datum x}
+              ({~datum #%st:assignment}
+               {~datum x}
                ({~datum #%st:send} {~datum y} {~datum squared})))
   )

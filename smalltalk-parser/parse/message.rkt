@@ -29,7 +29,7 @@
           [arg-p  <- st:primary/p]
           [arg-m* <- st:unary-msg/p]
           (return/p
-            (cons bmsg (build-unary-send-stx arg-p arg-m*)))))
+           (cons bmsg (build-unary-send-stx arg-p arg-m*)))))
 
   (define st:binary-msg/p
     (or/p (many1/p st:binary-msg1/p)
@@ -37,43 +37,43 @@
 
   (define st:keyword-msg/p
     (or/p (seq/p
-            (many1/p
-              (do/p [kmsg   <- (token->syntax/p (satisfy/p keyword?))]
-                    [arg-p  <- st:primary/p]
-                    [arg-m* <- st:binary-msg/p]
-                    (return/p
-                     (cons kmsg (build-binary-send-stx arg-p arg-m*)))))
-            (lambda (msg+args)
-              (define msg (build-keyword-stx (map car msg+args)))
-              (define args (map cdr msg+args))
-              (define srcloc
-                (apply build-source-location-syntax msg args))
-              (return/p (quasisyntax/loc srcloc (#,msg #,@args)))))
+           (many1/p
+            (do/p [kmsg   <- (token->syntax/p (satisfy/p keyword?))]
+                  [arg-p  <- st:primary/p]
+                  [arg-m* <- st:binary-msg/p]
+                  (return/p
+                   (cons kmsg (build-binary-send-stx arg-p arg-m*)))))
+           (lambda (msg+args)
+             (define msg (build-keyword-stx (map car msg+args)))
+             (define args (map cdr msg+args))
+             (define srcloc
+               (apply build-source-location-syntax msg args))
+             (return/p (quasisyntax/loc srcloc (#,msg #,@args)))))
           (return/p #f)))
 
   (define cascade-token/p
     (satisfy/p
-      (conjoin delimiter?
-               (lambda~> token-value
-                         (eq? 'cascade)))))
+     (conjoin delimiter?
+              (lambda~> token-value
+                        (eq? 'cascade)))))
 
   (define st:cascade/p
     (or/p (many1/p
-            (do/p cascade-token/p
-                  (or/p (seq/p st:unary-msg1/p
-                               (lambda (msg)
-                                 (return/p
-                                   (quasisyntax/loc msg (#,msg)))))
-                        (seq/p st:binary-msg1/p
-                               (lambda (msg+arg)
-                                 (define msg (car msg+arg))
-                                 (define arg (cdr msg+arg))
-                                 (define srcloc
-                                   (build-source-location-syntax msg arg))
-                                 (return/p
-                                   (quasisyntax/loc srcloc
-                                     (#,msg #,arg)))))
-                        st:keyword-msg/p)))
+           (do/p cascade-token/p
+                 (or/p (seq/p st:unary-msg1/p
+                              (lambda (msg)
+                                (return/p
+                                 (quasisyntax/loc msg (#,msg)))))
+                       (seq/p st:binary-msg1/p
+                              (lambda (msg+arg)
+                                (define msg (car msg+arg))
+                                (define arg (cdr msg+arg))
+                                (define srcloc
+                                  (build-source-location-syntax msg arg))
+                                (return/p
+                                 (quasisyntax/loc srcloc
+                                   (#,msg #,arg)))))
+                       st:keyword-msg/p)))
           (return/p #f)))
 
   (define (make-send-stx rcvr-stx msg-stx args-stx)

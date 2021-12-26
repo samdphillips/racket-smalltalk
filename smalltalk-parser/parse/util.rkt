@@ -13,9 +13,9 @@
 (define (token->syntax/p p)
   (do/p [tok <- p] (return/p (token->syntax tok))))
 
-  (define (st:delimiter/p type)
-    (~> (conjoin
-          delimiter?
-          (lambda~> token-value (eq? type)))
-        satisfy/p))
+(define (st:delimiter/p type)
+  (~> (conjoin
+       delimiter?
+       (lambda~> token-value (eq? type)))
+      satisfy/p))
 

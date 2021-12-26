@@ -29,7 +29,7 @@
           (st:delimiter/p 'assignment)
           [rhs <- st:expr/p]
           (return/p
-            (make-assignment-stx lhs rhs))))
+           (make-assignment-stx lhs rhs))))
 
   (define st:expr/p
     (or/p (try/p st:assignment/p)
