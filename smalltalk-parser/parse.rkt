@@ -1,20 +1,19 @@
 #lang racket/base
 
-(require microparsec
-         racket/unit
-         smalltalk/reader
-         "parse/expr.rkt"
-         "parse/interface.rkt"
-         "parse/message.rkt"
-         "parse/primary.rkt")
-
 (module* test #f
-  (require racket/format
+  (require microparsec
+           racket/format
            racket/port
-           racket/stream
+           (only-in racket/stream stream-empty?)
+           racket/unit
            rackunit
+           smalltalk/reader
            syntax/parse
-           syntax/parse/define)
+           syntax/parse/define
+           "parse/expr.rkt"
+           "parse/interface.rkt"
+           "parse/message.rkt"
+           "parse/primary.rkt")
 
   (define-values/invoke-unit/infer
     (export st:message^

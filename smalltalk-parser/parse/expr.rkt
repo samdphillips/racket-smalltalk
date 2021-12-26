@@ -1,11 +1,8 @@
 #lang racket/base
 
 (require microparsec
-         racket/function
          racket/unit
-         smalltalk/reader
          syntax/srcloc
-         threading
          "interface.rkt"
          "util.rkt")
 
