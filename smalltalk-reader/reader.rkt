@@ -198,9 +198,10 @@
      [(:: #\') (lex-string start-pos input-port)]
 
      ;; delimiters
-     [#\. ($token delimiter 'dot)]
-     [#\; ($token delimiter 'cascade)]
-     [#\^ ($token delimiter 'caret)]
+     [#\.  ($token delimiter 'dot)]
+     [#\;  ($token delimiter 'cascade)]
+     [#\^  ($token delimiter 'caret)]
+     [":=" ($token delimiter 'assignment)]
 
      ;; openers
      [(:or (char-set "([{") (:: #\# (char-set "([{")))
