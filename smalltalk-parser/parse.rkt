@@ -13,14 +13,17 @@
            "parse/expr.rkt"
            "parse/interface.rkt"
            "parse/message.rkt"
-           "parse/primary.rkt")
+           "parse/primary.rkt"
+           "parse/statement.rkt")
 
   (define-values/invoke-unit/infer
-    (export st:message^
-            st:expr^)
+    (export st:expr^
+            st:message^
+            st:statement^)
     (link default-st:primary@
           default-st:message@
-          default-st:expr@))
+          default-st:expr@
+          default-st:statement@))
 
   (define (port->stream p)
     (sequence->stream
@@ -108,4 +111,17 @@
               ({~datum #%st:assignment}
                {~datum x}
                ({~datum #%st:send} {~datum y} {~datum squared})))
+
+  (test-parse st:statement/p
+              "x := y"
+              ({~datum #%st:assignment}
+               {~datum x} {~datum y}))
+  (test-parse st:statement/p
+              "^42"
+              ({~datum #%st:return} 42))
+  (test-parse st:statement/p
+              "^x := y"
+              ({~datum #%st:return}
+               ({~datum #%st:assignment}
+                {~datum x} {~datum y})))
   )

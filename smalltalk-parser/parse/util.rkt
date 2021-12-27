@@ -18,7 +18,8 @@
   (~> (conjoin
        delimiter?
        (lambda~> token-value (eq? type)))
-      satisfy/p))
+      satisfy/p
+      token->syntax/p))
 
 ;; Older Racket versions (<8.3) don't support general source-location for
 ;; syntax/loc and friends, so we need to only use build-source-location-syntax.
