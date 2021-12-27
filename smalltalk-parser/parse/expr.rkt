@@ -2,7 +2,6 @@
 
 (require microparsec
          racket/unit
-         syntax/srcloc
          "interface.rkt"
          "util.rkt")
 
@@ -14,11 +13,7 @@
   (export st:expr^)
 
   (define (make-assignment-stx lstx rstx)
-    (define srcloc
-      ;; older Racket versions (<8.3) don't support general srcloc for
-      ;; syntax/loc and friends
-      (build-source-location-syntax lstx rstx))
-    (quasisyntax/loc srcloc
+    (quasisyntax/loc (build-source-location lstx rstx)
       (#%st:assignment #,lstx #,rstx)))
 
   (define st:assignment/p
@@ -30,7 +25,5 @@
 
   (define st:expr/p
     (or/p (try/p st:assignment/p)
-          st:message/p))
-
-  )
+          st:message/p)))
 

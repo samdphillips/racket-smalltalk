@@ -3,7 +3,6 @@
 (require microparsec
          racket/unit
          smalltalk/reader
-         syntax/srcloc
          threading
          "interface.rkt"
          "util.rkt")
@@ -45,8 +44,7 @@
            (lambda (msg+args)
              (define msg (build-keyword-stx (map car msg+args)))
              (define args (map cdr msg+args))
-             (define srcloc
-               (apply build-source-location-syntax msg args))
+             (define srcloc (build-source-location msg args))
              (return/p (quasisyntax/loc srcloc (#,msg #,@args)))))
           (return/p #f)))
 
@@ -64,7 +62,7 @@
                                 (define msg (car msg+arg))
                                 (define arg (cdr msg+arg))
                                 (define srcloc
-                                  (build-source-location-syntax msg arg))
+                                  (build-source-location msg arg))
                                 (return/p
                                  (quasisyntax/loc srcloc
                                    (#,msg #,arg)))))
@@ -72,11 +70,7 @@
           (return/p #f)))
 
   (define (make-send-stx rcvr-stx msg-stx args-stx)
-    (define srcloc
-      ;; older Racket versions (<8.3) don't support general srcloc for
-      ;; syntax/loc and friends
-      (apply build-source-location-syntax rcvr-stx msg-stx args-stx))
-    (quasisyntax/loc srcloc
+    (quasisyntax/loc (build-source-location rcvr-stx msg-stx args-stx)
       (#%st:send #,rcvr-stx #,msg-stx #,@args-stx)))
 
   (define (build-unary-send-stx rcvr msg*)
@@ -90,10 +84,7 @@
       (make-send-stx rcvr m (list a))))
 
   (define (build-keyword-stx kws)
-    (define srcloc
-      ;; older Racket versions (<8.3) don't support general srcloc for
-      ;; syntax/loc and friends
-      (apply build-source-location-syntax kws))
+    (define srcloc (build-source-location kws))
     (~>> (for/list ([k (in-list kws)])
            (symbol->string (syntax->datum k)))
          (apply string-append)
@@ -113,8 +104,7 @@
           [(#%st:send rcvr0 msg0 . arg0)
            (let ()
              (define srcloc
-               (apply build-source-location-syntax
-                      #'rcvr0 #'msg0 #'arg0 casc))
+               (build-source-location #'rcvr0 #'msg0 #'arg0 casc))
              (quasisyntax/loc srcloc
                (#%st:send* rcvr0 (msg0 . arg0) #,@casc)))])
         rcvr))
