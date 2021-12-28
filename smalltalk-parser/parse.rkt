@@ -46,6 +46,27 @@
                  [_ #f])
                "syntax does not match pattern")))))))
 
+  (define-syntax-parse-rule (test-parse* test/p:id str pats ...)
+    (test-case (~a "parse " (~s str) " with " 'test/p)
+      (call-with-input-string str
+        (lambda (inp)
+          (define-values (parsed rest)
+            (parse test/p (port->stream inp)))
+          (with-check-info*
+              (list (make-check-info 'parsed parsed))
+            (lambda ()
+              (check-true (stream-empty? rest) "unparsed tail")
+              (check-true (list? parsed) "parsed is not list of syntax")
+              (check-true (andmap syntax? parsed)
+                          "parsed is not list of syntax")
+              (check-true
+               (syntax-parse #`(#,@parsed)
+                 [(pats ...) #t]
+                 [_ #f])
+               "syntax does not match patterns")))))))
+
+  (test-parse st:message/p "42" 42)
+  (test-parse st:message/p "a" {~datum a})
   (test-parse st:message/p "a toString"
               ({~datum #%st:send} {~datum a} {~datum toString}))
 
@@ -124,4 +145,7 @@
               ({~datum #%st:return}
                ({~datum #%st:assignment}
                 {~datum x} {~datum y})))
+
+  (test-parse* st:statements/p "3" 3)
+  (test-parse* st:statements/p "3. 4" 3 4)
   )

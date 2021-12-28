@@ -8,5 +8,6 @@
 (define-signature st:message^   (st:message/p))
 (define-signature st:primary^   (st:identifier/p
                                  st:primary/p))
-(define-signature st:statement^ (st:statement/p))
+(define-signature st:statement^ (st:statement/p
+                                 st:statements/p))
 
