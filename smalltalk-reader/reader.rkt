@@ -13,6 +13,7 @@
          identifier?
          binary-selector?
          keyword?
+         block-argument?
          delimiter?
          opener?
          closer?)
@@ -116,6 +117,7 @@
 (struct identifier      token () #:transparent)
 (struct binary-selector token () #:transparent)
 (struct keyword         token () #:transparent)
+(struct block-argument  token () #:transparent)
 (struct delimiter       token () #:transparent)
 (struct opener          token () #:transparent)
 (struct closer          token () #:transparent)
@@ -188,11 +190,17 @@
      ;; binary selector
      [(:+ (char-set "~!@%&*-+=\\|,<>/"))
       ($token binary-selector (string->symbol lexeme))]
-     
+
      ;; identifiers
      [(:: (:or #\_ alphabetic)
           (:* alphabetic numeric))
       ($token identifier (string->symbol lexeme))]
+
+     ;; block arguments
+     [(:: #\:
+          (:or #\_ alphabetic)
+          (:* alphabetic numeric))
+      ($token block-argument (string->symbol (substring lexeme 1)))]
 
      ;; strings
      [(:: #\') (lex-string start-pos input-port)]
@@ -236,7 +244,7 @@
                   (binary-selector _ '<)
                   (binary-selector _ '>)
                   (binary-selector _ '<+>)))
-  
+
   (test-case "keyword - abc:"
     (check-tokens "abc:" (keyword _ 'abc:)))
 
@@ -248,6 +256,12 @@
     (check-tokens
      "16rFF raisedTo: 2"
      (token _ 255) (keyword _ 'raisedTo:) (token _ 2)))
+
+  (test-case "block arguments"
+    (check-tokens
+     ":aThing :aFoo"
+     (block-argument _ 'aThing)
+     (block-argument _ 'aFoo)))
 
   (test-case "strings"
     (check-tokens
