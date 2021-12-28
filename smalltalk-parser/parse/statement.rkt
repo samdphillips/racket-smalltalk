@@ -26,15 +26,17 @@
           st:expr/p))
 
   (define st:statements/p
-    (or/p (try/p
+    (label/p
+     "statements"
+     (or/p (try/p
+            (do/p [s <- st:statement/p]
+                  (st:delimiter/p 'dot)
+                  [s* <- st:statements/p]
+                  (return/p (cons s s*))))
+           (try/p
+            (do/p [s <- st:statement/p]
+                  (st:delimiter/p 'dot)
+                  (return/p (list s))))
            (do/p [s <- st:statement/p]
-                 (st:delimiter/p 'dot)
-                 [s* <- st:statements/p]
-                 (return/p (cons s s*))))
-          (try/p
-           (do/p [s <- st:statement/p]
-                 (st:delimiter/p 'dot)
-                 (return/p (list s))))
-          (do/p [s <- st:statement/p]
-                (return/p (list s))))))
+                 (return/p (list s)))))))
 

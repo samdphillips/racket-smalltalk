@@ -10,6 +10,7 @@
            smalltalk/reader
            syntax/parse
            syntax/parse/define
+           "parse/block.rkt"
            "parse/expr.rkt"
            "parse/interface.rkt"
            "parse/message.rkt"
@@ -19,11 +20,13 @@
   (define-values/invoke-unit/infer
     (export st:expr^
             st:message^
-            st:statement^)
+            st:statement^
+            st:block^)
     (link default-st:primary@
           default-st:message@
           default-st:expr@
-          default-st:statement@))
+          default-st:statement@
+          default-st:block@))
 
   (define (port->stream p)
     (sequence->stream
@@ -148,4 +151,8 @@
 
   (test-parse* st:statements/p "3" 3)
   (test-parse* st:statements/p "3. 4" 3 4)
+
+  (test-parse st:block/p
+              "[ 42 ]"
+              ({~datum #%st:block} () () 42))
   )
