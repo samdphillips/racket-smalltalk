@@ -156,6 +156,20 @@
               "[ 42 ]"
               ({~datum #%st:block} () () 42))
   (test-parse st:block/p
+              "[ 42. ]"
+              ({~datum #%st:block} () () 42))
+  (test-parse st:block/p
               "[ 42. 43 ]"
               ({~datum #%st:block} () () 42 43))
+  (test-parse st:block/p
+              "[|x| x := 42. x + 1 ]"
+              ({~datum #%st:block} () ({~datum x})
+               ({~datum #%st:assignment} {~datum x} 42)
+               ({~datum #%st:send} {~datum x} + 1)))
+  (test-parse st:block/p
+              "[| | 42 ]"
+              ({~datum #%st:block} () () 42))
+  (test-parse st:block/p
+              "[|| 42 ]"
+              ({~datum #%st:block} () () 42))
   )
