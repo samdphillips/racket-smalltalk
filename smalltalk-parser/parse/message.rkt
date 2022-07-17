@@ -22,8 +22,7 @@
           (return/p null)))
 
   (define st:binary-msg1/p
-    (do/p [bmsg   <- (token->syntax/p
-                      (satisfy/p binary-selector?))]
+    (do/p [bmsg   <- st:binary-selector/p]
           [arg-p  <- st:primary/p]
           [arg-m* <- st:unary-msg/p]
           (return/p

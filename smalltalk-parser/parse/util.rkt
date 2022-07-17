@@ -14,12 +14,30 @@
 (define (token->syntax/p p)
   (do/p [tok <- p] (return/p (token->syntax tok))))
 
+(define st:keyword/p
+  (token->syntax/p (satisfy/p keyword?)))
+
+(define st:binary-selector/p
+  (token->syntax/p (satisfy/p binary-selector?)))
+
 (define (st:delimiter/p type)
   (~> (conjoin
        delimiter?
        (lambda~> token-value (eq? type)))
       satisfy/p
       token->syntax/p))
+
+(define st:pipe/p
+  (satisfy/p (conjoin
+               binary-selector?
+               (lambda (tok)
+                 (eq? '\| (token-value tok))))))
+
+(define st:double-pipe/p
+  (satisfy/p (conjoin
+               binary-selector?
+               (lambda (tok)
+                 (eq? '\|\| (token-value tok))))))
 
 (define (st:opener/p s)
   (~> (conjoin
@@ -34,6 +52,18 @@
        (lambda~> token-value (string=? s)))
       satisfy/p
       token->syntax/p))
+
+(define st:block-opener/p
+  (st:opener/p "["))
+
+(define st:block-closer/p
+  (st:closer/p "]"))
+
+(define st:paren-opener/p
+  (st:opener/p "("))
+
+(define st:paren-closer/p
+  (st:closer/p ")"))
 
 ;; Older Racket versions (<8.3) don't support general source-location for
 ;; syntax/loc and friends, so we need to only use build-source-location-syntax.

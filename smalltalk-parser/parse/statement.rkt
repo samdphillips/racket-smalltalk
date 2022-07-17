@@ -8,8 +8,23 @@
 (provide (all-defined-out))
 
 (define-unit default-st:statement@
-  (import st:expr^)
+  (import st:primary^
+          st:expr^)
   (export st:statement^)
+
+  (define st:temps/p
+    (or/p (do/p st:pipe/p
+                [vars <- (many/p st:identifier/p)]
+                st:pipe/p
+                (return/p vars))
+          (do/p st:double-pipe/p
+                (return/p null))
+          (return/p null)))
+
+  (define st:code-body/p
+    (do/p [temps <- st:temps/p]
+          [body  <- st:statements/p]
+          (return/p (cons temps body))))
 
   (define (make-return c stx)
     (quasisyntax/loc (build-source-location c stx)
