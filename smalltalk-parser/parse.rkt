@@ -22,11 +22,11 @@
             st:message^
             st:statement^
             st:block^)
-    (link default-st:primary@
+    (link default-st:block@
+          default-st:primary@
           default-st:message@
           default-st:expr@
-          default-st:statement@
-          default-st:block@))
+          default-st:statement@))
 
   (define (port->stream p)
     (sequence->stream
@@ -87,6 +87,10 @@
   (test-parse st:message/p "3 factorial + 4 factorial"
               (#%st:send (#%st:send 3 factorial) + (#%st:send 4 factorial)))
 
+  (test-parse st:message/p "4 raisedTo: 3 factorial"
+              (#%st:send 4 raisedTo: (#%st:send 3 factorial)))
+  (test-parse st:message/p "4 raisedTo: (3 factorial)"
+              (#%st:send 4 raisedTo: (#%st:send 3 factorial)))
   (test-parse st:message/p "2 raisedTo: 5"
               (#%st:send 2 raisedTo: 5))
   (test-parse st:message/p "d at: 0 put: 1"

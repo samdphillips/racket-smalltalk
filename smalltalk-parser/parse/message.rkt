@@ -37,9 +37,12 @@
            (many1/p
             (do/p [kmsg   <- (token->syntax/p (satisfy/p keyword?))]
                   [arg-p  <- st:primary/p]
+                  [arg-u* <- st:unary-msg/p]
                   [arg-m* <- st:binary-msg/p]
                   (return/p
-                   (cons kmsg (build-binary-send-stx arg-p arg-m*)))))
+                   (~> (build-unary-send-stx arg-p arg-u*)
+                       (build-binary-send-stx arg-m*)
+                       (cons kmsg _)))))
            (lambda (msg+args)
              (define msg (build-keyword-stx (map car msg+args)))
              (define args (map cdr msg+args))
