@@ -86,6 +86,8 @@
               (#%st:send (#%st:send 3 + 4) * 2))
   (test-parse st:message/p "3 factorial + 4 factorial"
               (#%st:send (#%st:send 3 factorial) + (#%st:send 4 factorial)))
+  (test-parse st:message/p "'x', 'y'"
+              (#%st:send "x" |,| "y"))
 
   (test-parse st:message/p "4 raisedTo: 3 factorial"
               (#%st:send 4 raisedTo: (#%st:send 3 factorial)))

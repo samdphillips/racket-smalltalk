@@ -27,6 +27,8 @@
     (or/p st:identifier/p
           (token->syntax/p
            (satisfy/p token-integer?))
+          (token->syntax/p
+           (satisfy/p token-string?))
           (try/p st:nested-expr/p)
           st:block/p)))
 
