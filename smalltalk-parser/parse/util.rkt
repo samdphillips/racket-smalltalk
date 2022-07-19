@@ -14,6 +14,9 @@
 (define (token->syntax/p p)
   (do/p [tok <- p] (return/p (token->syntax tok))))
 
+(define st:identifier/p
+  (token->syntax/p (satisfy/p identifier?)))
+
 (define st:keyword/p
   (token->syntax/p (satisfy/p keyword?)))
 

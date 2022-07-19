@@ -13,10 +13,6 @@
           st:expr^)
   (export st:primary^)
 
-  ;; XXX move this to util
-  (define st:identifier/p
-    (token->syntax/p (satisfy/p identifier?)))
-
   (define st:nested-expr/p
     (do/p st:paren-opener/p
           [e <- st:expr/p]

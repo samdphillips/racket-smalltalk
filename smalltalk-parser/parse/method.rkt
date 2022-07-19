@@ -11,8 +11,7 @@
 (provide (all-defined-out))
 
 (define-unit default-st:method@
-  (import st:primary^
-          st:statement^)
+  (import st:statement^)
   (export st:method^)
 
   (define st:unary-method-header/p

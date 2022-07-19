@@ -10,8 +10,7 @@
 (provide (all-defined-out))
 
 (define-unit default-st:block@
-  (import st:primary^
-          st:statement^)
+  (import st:statement^)
   (export st:block^)
 
   (define st:block-args/p

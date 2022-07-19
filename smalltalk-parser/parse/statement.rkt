@@ -8,8 +8,7 @@
 (provide (all-defined-out))
 
 (define-unit default-st:statement@
-  (import st:primary^
-          st:expr^)
+  (import st:expr^)
   (export st:statement^)
 
   (define st:temps/p

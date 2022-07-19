@@ -8,8 +8,7 @@
 (define-signature st:expr^      (st:expr/p))
 (define-signature st:message^   (st:message/p))
 (define-signature st:method^    (st:method/p))
-(define-signature st:primary^   (st:identifier/p
-                                 st:primary/p))
+(define-signature st:primary^   (st:primary/p))
 (define-signature st:statement^ (st:code-body/p
                                  st:statement/p
                                  st:statements/p))

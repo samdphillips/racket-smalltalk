@@ -8,8 +8,7 @@
 (provide (all-defined-out))
 
 (define-unit default-st:expr@
-  (import st:primary^
-          st:message^)
+  (import st:message^)
   (export st:expr^)
 
   (define (make-assignment-stx lstx rstx)

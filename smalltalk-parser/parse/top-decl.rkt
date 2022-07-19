@@ -11,8 +11,7 @@
 
 (define-unit default-st:top-decl@
   (import st:expr^
-          st:method^
-          st:primary^)
+          st:method^)
   (export st:top-decl^)
 
   (define subclass-kw/p
