@@ -23,6 +23,9 @@
 (define st:binary-selector/p
   (token->syntax/p (satisfy/p binary-selector?)))
 
+(define st:block-argument/p
+  (token->syntax/p (satisfy/p block-argument?)))
+
 (define (st:delimiter/p type)
   (~> (conjoin
        delimiter?
@@ -30,17 +33,17 @@
       satisfy/p
       token->syntax/p))
 
-(define st:pipe/p
+(define/p st:pipe/p
   (satisfy/p (conjoin
-               binary-selector?
-               (lambda (tok)
-                 (eq? '\| (token-value tok))))))
+              binary-selector?
+              (lambda (tok)
+                (eq? '\| (token-value tok))))))
 
-(define st:double-pipe/p
+(define/p st:double-pipe/p
   (satisfy/p (conjoin
-               binary-selector?
-               (lambda (tok)
-                 (eq? '\|\| (token-value tok))))))
+              binary-selector?
+              (lambda (tok)
+                (eq? '\|\| (token-value tok))))))
 
 (define (st:opener/p s)
   (~> (conjoin

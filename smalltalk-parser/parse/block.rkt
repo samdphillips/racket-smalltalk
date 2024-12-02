@@ -4,6 +4,7 @@
          racket/function
          racket/unit
          smalltalk/reader
+         (submod smalltalk/reader for-pipes)
          "interface.rkt"
          "util.rkt")
 
@@ -14,7 +15,12 @@
   (export st:block^)
 
   (define st:block-args/p
-    (return/p null))
+    (or/p (do/p [args <- (many1/p st:block-argument/p)]
+                (or/p st:pipe/p
+                      (do/p [p <- st:double-pipe/p]
+                            (push/p (binary-selector (token-srcloc p) '\|))))
+                (return/p args))
+          (return/p null)))
 
   (define (make-block-stx lb rb args temps body)
     (quasisyntax/loc (build-source-location lb rb args temps body)
