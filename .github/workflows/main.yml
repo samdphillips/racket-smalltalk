@@ -6,15 +6,14 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        racket-version: ["8.4", "8.3", "pre-release", "stable", "current"]
-        racket-variant: ["BC", "CS"]
+        racket-version: ["8.18", "8.17", "pre-release", "stable", "current"]
     steps:
       - uses: actions/checkout@v2
-      - uses: Bogdanp/setup-racket@v1.8.1
+      - uses: Bogdanp/setup-racket@v1.14
         with:
           architecture: x64
           distribution: full
-          variant: ${{ matrix.racket-variant }}
+          variant: "CS"
           version: ${{ matrix.racket-version }}
       - name: Installing packages and their dependencies
         run: raco pkg install --no-docs --auto --link smalltalk-reader smalltalk-parser
