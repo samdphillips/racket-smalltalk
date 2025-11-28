@@ -16,10 +16,8 @@ jobs:
           variant: "CS"
           version: ${{ matrix.racket-version }}
       - name: Installing packages and their dependencies
-        run: raco pkg install --no-docs --auto --link smalltalk-reader smalltalk-parser
+        run: raco pkg install --no-docs --auto --link smalltalk-reader
       - name: Compiling smalltalk-reader and its docs
         run: raco setup --check-pkg-deps --unused-pkg-deps --pkgs smalltalk-reader
-      - name: Compiling smalltalk-parser and its docs
-        run: raco setup --check-pkg-deps --unused-pkg-deps --pkgs smalltalk-parser
       - name: Testing packages
-        run: raco test -xt -p smalltalk-reader smalltalk-parser
+        run: raco test -xt -p smalltalk-reader
