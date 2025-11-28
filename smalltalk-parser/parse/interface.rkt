@@ -13,4 +13,5 @@
                                  st:statement/p
                                  st:statements/p))
 (define-signature st:top-decl^  (st:class-decl/p
-                                 st:top-decl/p))
+                                 st:top-decl/p
+                                 st:module/p))

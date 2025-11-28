@@ -24,7 +24,7 @@
           (return/p (list msg arg))))
 
   (define st:keyword-method-header/p
-    (seq/p 
+    (seq/p
       (many1/p (do/p [kmsg <- st:keyword/p]
                      [arg  <- st:identifier/p]
                      (return/p (cons kmsg arg))))
@@ -47,21 +47,18 @@
           st:binary-method-header/p
           st:keyword-method-header/p))
 
-  (define (dbg/p v)
-    (displayln v)
-    (return/p v))
-
   (define st:method/p
-    (do/p [message+args <- st:method-header/p]
-          [lb         <- st:block-opener/p]
-          [temps+body <- st:code-body/p]
-          [rb         <- st:block-closer/p]
-          (dbg/p
-            (make-method-stx (build-source-location (car message+args) rb)
-                             (car message+args)
-                             (cdr message+args)
-                             (car temps+body)
-                             (cdr temps+body)))))
+    (label/p "method"
+      (do/p [message+args <- st:method-header/p]
+            [lb         <- st:block-opener/p]
+            [temps+body <- st:code-body/p]
+            [rb         <- st:block-closer/p]
+            (dbg/p
+             (make-method-stx (build-source-location (car message+args) rb)
+                              (car message+args)
+                              (cdr message+args)
+                              (car temps+body)
+                              (cdr temps+body))))))
 
   (define (make-method-stx srcloc message arg* temp* body*)
     (quasisyntax/loc srcloc

@@ -31,25 +31,29 @@
        delimiter?
        (lambda~> token-value (eq? type)))
       satisfy/p
+      (label/p type _)
       token->syntax/p))
 
 (define/p st:pipe/p
-  (satisfy/p (conjoin
-              binary-selector?
-              (lambda (tok)
-                (eq? '\| (token-value tok))))))
+  (label/p "|"
+    (satisfy/p (conjoin
+                binary-selector?
+                (lambda (tok)
+                  (eq? '\| (token-value tok)))))))
 
 (define/p st:double-pipe/p
-  (satisfy/p (conjoin
-              binary-selector?
-              (lambda (tok)
-                (eq? '\|\| (token-value tok))))))
+  (label/p "||"
+    (satisfy/p (conjoin
+                binary-selector?
+                (lambda (tok)
+                  (eq? '\|\| (token-value tok)))))))
 
 (define (st:opener/p s)
   (~> (conjoin
        opener?
        (lambda~> token-value (string=? s)))
       satisfy/p
+      (label/p s _)
       token->syntax/p))
 
 (define (st:closer/p s)
@@ -57,6 +61,7 @@
        closer?
        (lambda~> token-value (string=? s)))
       satisfy/p
+      (label/p s _)
       token->syntax/p))
 
 (define st:block-opener/p
@@ -71,6 +76,10 @@
 (define st:paren-closer/p
   (st:closer/p ")"))
 
+(define (dbg/p v)
+  (displayln v)
+  (return/p v))
+
 ;; Older Racket versions (<8.3) don't support general source-location for
 ;; syntax/loc and friends, so we need to only use build-source-location-syntax.
 ;; This also handles arguments that are `(listof syntax?)`
@@ -82,4 +91,3 @@
           [(null? s) stx]
           [else (build-source-location-syntax stx s)]))
       (apply build-source-location (append stx0 stxs))))
-

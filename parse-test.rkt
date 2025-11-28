@@ -32,14 +32,15 @@
       sequence->stream))
 
 (define (p f s)
-  (define-values (parsed rest) (parse f (string->tokens s)))
-  (values parsed (stream->list rest)))
+  (let/ec ret
+    (define-values (parsed rest) (parse f (string->tokens s) #:error ret))
+    (values parsed (stream->list rest))))
 
 (module* parse-file #f
   (call-with-input-file (vector-ref (current-command-line-arguments) 0)
     (lambda (inp)
       (port-count-lines! inp)
-      (parse st:top-decl/p (sequence->stream (in-port smalltalk-read inp))))))
+      (parse st:module/p (sequence->stream (in-port smalltalk-read inp))))))
 
 (module* parse-string #f
   (p st:code-body/p (vector-ref (current-command-line-arguments) 0)))
