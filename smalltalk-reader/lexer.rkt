@@ -3,8 +3,8 @@
 (require racket/contract)
 
 (provide (contract-out
-          [smalltalk-read
-           (->* () (input-port?) (or/c eof-object? token?))]
+          [smalltalk-lex
+           (-> input-port? (or/c eof-object? token?))]
           [token-value    (-> token? any)])
          token?
          token-integer?
@@ -17,14 +17,6 @@
          delimiter?
          opener?
          closer?)
-
-;; The pipe (vertical bar) character is part of the structural syntax and also
-;; an binary message selector.  Ideally the constructor should be private to the
-;; tokenizer, but it is provided here from a submodule because it is needed so the
-;; parser can synthesize and inject a token when handling the parsing of blocks.
-;; This is not part of the public interface, and could disappear if a better
-;; solution is found.
-(module* for-pipes #f (provide binary-selector))
 
 (require racket/match
          (prefix-in - syntax/readerr)
@@ -225,9 +217,6 @@
      [(char-set ")]}")
       ($token closer lexeme)]
      )))
-
-(define (smalltalk-read [input-port (current-input-port)])
-  (smalltalk-lex input-port))
 
 (module+ test
   (define-syntax-parse-rule (check-tokens s pats ...)
