@@ -9,7 +9,7 @@
          token?
          token-integer?
          token-string?
-         const?
+         literal?
          identifier?
          binary-selector?
          keyword?
@@ -77,7 +77,7 @@
        (raise-read-error
         (format "value (~a) out of range for base (~a)" c base)
         srcloc)]))
-  (for/fold ([v 0] #:result (const srcloc v))
+  (for/fold ([v 0] #:result (literal srcloc v))
             ([c (in-string igits)]
              #:unless (char=? c #\_))
     (+ (char->value c) (* base v))))
@@ -111,7 +111,7 @@
             (lambda () (parse-nrm-number #f "37rA"))))
 
 (struct token (srcloc value) #:transparent)
-(struct const           token () #:transparent)
+(struct literal         token () #:transparent)
 (struct identifier      token () #:transparent)
 (struct binary-selector token () #:transparent)
 (struct keyword         token () #:transparent)
@@ -121,7 +121,7 @@
 (struct closer          token () #:transparent)
 
 (define ((make-token-value-pred pred?) tok)
-  (and (const? tok) (pred? (token-value tok))))
+  (and (literal? tok) (pred? (token-value tok))))
 
 (define token-integer? (make-token-value-pred integer?))
 (define token-string?  (make-token-value-pred string?))
@@ -151,7 +151,7 @@
      [#\'
       (make-token
        input-port start-loc end-pos
-       const (get-output-string out-string))]))
+       literal (get-output-string out-string))]))
   (lex input-port))
 
 (define smalltalk-lex
