@@ -1,7 +1,6 @@
 #lang racket/base
 
-(require racket/contract
-         (only-in microparsec gen:to-srcloc))
+(require racket/contract)
 
 (provide (contract-out
           [smalltalk-read
@@ -119,10 +118,7 @@
             exn:fail:read?
             (lambda () (parse-nrm-number #f "37rA"))))
 
-(struct token (srcloc$ value)
-  #:methods gen:to-srcloc
-  [(define (token-srcloc t) (token-srcloc$ t))]
-  #:transparent)
+(struct token (srcloc value) #:transparent)
 (struct const           token () #:transparent)
 (struct identifier      token () #:transparent)
 (struct binary-selector token () #:transparent)
