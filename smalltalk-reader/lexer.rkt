@@ -3,9 +3,12 @@
 (require racket/contract)
 
 (provide (contract-out
-          [smalltalk-lex
+          [lex-token
            (-> input-port? (or/c eof-object? token?))]
-          [token-value    (-> token? any)])
+          [peek-token
+           (-> input-port? (or/c eof-object? token?))]
+          [token-srcloc (-> token? source-location?)]
+          [token-value (-> token? any)])
          token?
          token-integer?
          token-string?
@@ -16,13 +19,15 @@
          block-argument?
          delimiter?
          opener?
-         closer?)
+         closer?
+         dot?)
 
 (require racket/match
-         (prefix-in - syntax/readerr)
+         racket/port
          syntax/srcloc
          parser-tools/lex
-         (prefix-in : parser-tools/lex-sre))
+         (prefix-in : parser-tools/lex-sre)
+         "exn.rkt")
 
 (module+ test
   (require rackunit
@@ -36,19 +41,6 @@
                      (object-name source)
                      source)
                  line column offset 0))))
-
-(define ((make-raise-read-error	raise-proc) message srcloc)
-  (raise-proc message
-              (source-location-source   srcloc)
-              (source-location-line     srcloc)
-              (source-location-column   srcloc)
-              (source-location-position srcloc)
-              (source-location-span     srcloc)))
-
-(define raise-read-error
-  (make-raise-read-error -raise-read-error))
-(define raise-read-eof-error
-  (make-raise-read-error -raise-read-eof-error))
 
 (define ZERO (char->integer #\0))
 (define NINE (char->integer #\9))
@@ -120,6 +112,10 @@
 (struct opener          token () #:transparent)
 (struct closer          token () #:transparent)
 
+(define (dot? v)
+  (and (delimiter? v)
+       (eq? 'dot (token-value v))))
+
 (define ((make-token-value-pred pred?) tok)
   (and (literal? tok) (pred? (token-value tok))))
 
@@ -154,7 +150,7 @@
        literal (get-output-string out-string))]))
   (lex input-port))
 
-(define smalltalk-lex
+(define lex-token
   (letrec-syntax ([$token
                    (syntax-rules ()
                      [(_ value) ($token token value)]
@@ -165,11 +161,11 @@
      ;; whitespace
      [(eof) eof]
      [(:+  whitespace)
-      (smalltalk-lex input-port)]
+      (lex-token input-port)]
 
      ;; comments
      [(:: #\" (:* (:~ #\")) #\")
-      (smalltalk-lex input-port)]
+      (lex-token input-port)]
 
      ;; integers - nrm format
      [(:: (:** 1 2 numeric) #\r (:+ (:or #\_ alphabetic numeric)))
@@ -207,23 +203,48 @@
      [#\.  ($token delimiter 'dot)]
      [#\;  ($token delimiter 'cascade)]
      [#\^  ($token delimiter 'caret)]
-     [":=" ($token delimiter 'assignment)]
+     [":=" ($token delimiter 'assign)]
 
      ;; openers
      [(:or (char-set "([{") (:: #\# (char-set "([{")))
-      ($token opener lexeme)]
+      ($token opener (nested-name lexeme))]
 
      ;; closers
      [(char-set ")]}")
-      ($token closer lexeme)]
-     )))
+      ($token closer (nested-name lexeme))])))
+
+(define (nested-name s)
+  (match s
+    [(or "(" ")") 'paren]
+    [(or "[" "]") 'block]
+    [(or "{" "}") 'brace]))
+
+(define (peek-token inp)
+  (define peek-inp (peeking-input-port inp))
+  (dynamic-wind
+    void
+    (lambda ()
+      (with-handlers* ([exn:fail:read? (lambda (e) #f)])
+        (lex-token peek-inp)))
+    (lambda () (close-input-port peek-inp))))
+
+(module+ test
+  (call-with-input-string "a b"
+    (λ (in)
+      (check-match (peek-token in) (identifier _ 'a))
+      (check-match (peek-token in) (identifier _ 'a))
+      (check-match (lex-token in) (identifier _ 'a))
+      (check-match (peek-token in) (identifier _ 'b))
+      (check-match (lex-token in) (identifier _ 'b))
+      (check-match (lex-token in) (? eof-object?))
+      (check-match (peek-token in) (? eof-object?)))))
 
 (module+ test
   (define-syntax-parse-rule (check-tokens s pats ...)
     (check-match
      (call-with-input-string s
        (lambda (in)
-         (for/list ([tok (in-port smalltalk-lex in)]) tok)))
+         (for/list ([tok (in-port lex-token in)]) tok)))
      (list pats ...)))
 
   (test-case "identifier - abc"
