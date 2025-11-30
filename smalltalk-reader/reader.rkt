@@ -30,7 +30,7 @@
 
   (define (read-language in)
     (or (maybe-read-language in)
-        '(submod smalltalk/reader quote-lang))))
+        '(submod smalltalk/reader print-lang))))
 
 (module* reader syntax/module-reader
   #:language read-language
@@ -39,12 +39,12 @@
   #:whole-body-readers? #t
   (require (submod ".." reader-support)))
 
-(module quote-lang racket/base
+(module print-lang racket/base
   (require racket/pretty)
   (provide (rename-out [module-begin #%module-begin]))
-  (define-syntax-rule (module-begin expr)
+  (define-syntax-rule (module-begin expr ...)
     (#%module-begin
-     (pretty-print (quote expr)))))
+     (pretty-print (quote expr)) ...)))
 
 (define (st:read-syntax src in)
   (define group*

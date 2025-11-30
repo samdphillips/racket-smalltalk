@@ -6,7 +6,7 @@
           [lex-token
            (-> input-port? (or/c eof-object? token?))]
           [peek-token
-           (-> input-port? (or/c eof-object? token?))]
+           (-> input-port? (or/c eof-object? token? #f))]
           [token-srcloc (-> token? source-location?)]
           [token-value (-> token? any)])
          token?
